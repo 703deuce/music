@@ -2,7 +2,7 @@
 # Optimized for serverless GPU deployment
 
 # Use NVIDIA CUDA base image with Python
-FROM nvidia/cuda:12.1-cudnn8-devel-ubuntu22.04
+FROM nvidia/cuda:12.1.1-cudnn8-devel-ubuntu22.04
 
 # Set environment variables
 ENV DEBIAN_FRONTEND=noninteractive
@@ -40,7 +40,9 @@ RUN apt-get update && apt-get install -y \
     libswresample-dev \
     libtag1-dev \
     libchromaprint-dev \
-    && rm -rf /var/lib/apt/lists/*
+    ca-certificates \
+    && rm -rf /var/lib/apt/lists/* \
+    && apt-get clean
 
 # Create symbolic link for python
 RUN ln -s /usr/bin/python3 /usr/bin/python
