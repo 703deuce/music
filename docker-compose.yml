@@ -1,0 +1,62 @@
+# Docker Compose for local development and testing
+version: '3.8'
+
+services:
+  music-ai-suite:
+    build: .
+    container_name: music-ai-api
+    ports:
+      - "8000:8000"
+    volumes:
+      - ./models:/workspace/models
+      - ./test_data:/workspace/test_data
+      - ./logs:/workspace/logs
+    environment:
+      - CUDA_VISIBLE_DEVICES=0
+      - ACE_STEP_MODEL_PATH=/workspace/models/ace-step
+      - SOVITS_MODELS_DIR=/workspace/models/sovits
+      - DEMUCS_MODELS_DIR=/workspace/models/demucs
+      - PYTHONUNBUFFERED=1
+    deploy:
+      resources:
+        reservations:
+          devices:
+            - driver: nvidia
+              count: 1
+              capabilities: [gpu]
+    restart: unless-stopped
+    healthcheck:
+      test: ["CMD", "python", "-c", "import torch; print('CUDA:', torch.cuda.is_available())"]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+      start_period: 60s
+
+  # Optional: Redis for caching (if needed)
+  redis:
+    image: redis:7-alpine
+    container_name: music-ai-redis
+    ports:
+      - "6379:6379"
+    volumes:
+      - redis_data:/data
+    restart: unless-stopped
+
+  # Optional: MinIO for local S3-compatible storage
+  minio:
+    image: minio/minio:latest
+    container_name: music-ai-storage
+    ports:
+      - "9000:9000"
+      - "9001:9001"
+    volumes:
+      - minio_data:/data
+    environment:
+      - MINIO_ROOT_USER=minioadmin
+      - MINIO_ROOT_PASSWORD=minioadmin123
+    command: server /data --console-address ":9001"
+    restart: unless-stopped
+
+volumes:
+  redis_data:
+  minio_data:
