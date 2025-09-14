@@ -54,8 +54,8 @@ RUN pip install --upgrade pip setuptools wheel
 # Install NumPy first to avoid compatibility issues
 RUN pip install numpy==1.24.3
 
-# Install PyTorch with CUDA support (downgrade for ACE-Step compatibility)
-RUN pip install torch==2.0.1 torchaudio==2.0.2 --index-url https://download.pytorch.org/whl/cu121
+# Install PyTorch with CUDA support (use +cu121 suffix for CUDA 12.1)
+RUN pip install torch==2.1.0+cu121 torchaudio==2.1.0+cu121 --index-url https://download.pytorch.org/whl/cu121
 
 # Copy requirements and install core dependencies only
 COPY requirements.txt .
@@ -81,6 +81,9 @@ USER musicai
 # Set environment variables for RunPod volume storage
 ENV RUNPOD_VOLUME_PATH=/runpod-volume
 ENV PYTHONPATH=/workspace
+
+# Default storage configuration (can be overridden by RunPod environment variables)
+ENV FIREBASE_STORAGE_BUCKET=aitts-d4c6d.firebasestorage.app
 
 # Create volume mount point (RunPod will mount the persistent volume here)
 USER root
