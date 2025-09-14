@@ -50,31 +50,15 @@ RUN ln -s /usr/bin/python3 /usr/bin/python
 # Upgrade pip and install build tools
 RUN pip install --upgrade pip setuptools wheel
 
-# Install build dependencies first
-RUN pip install Cython>=0.29.0 numpy>=1.21.0
-
-# Install PyTorch with CUDA support (for better dependency resolution)
+# Install PyTorch with CUDA support first
 RUN pip install torch==2.1.0 torchaudio==2.1.0 --index-url https://download.pytorch.org/whl/cu121
 
-# Copy requirements and install remaining Python dependencies
+# Copy requirements and install core dependencies only
 COPY requirements.txt .
 RUN pip install -r requirements.txt
 
-# Install additional dependencies that might not be in requirements.txt
-RUN pip install runpod
-
-# Install models from source (correct repositories)
-# Install ACE-Step from source
-RUN git clone https://github.com/ace-step/ACE-Step.git /tmp/ace-step && \
-    cd /tmp/ace-step && \
-    pip install -e . && \
-    rm -rf /tmp/ace-step
-
-# Install so-vits-svc from source (correct repository)
-RUN git clone https://github.com/voicepaw/so-vits-svc.git /tmp/so-vits-svc && \
-    cd /tmp/so-vits-svc && \
-    pip install -e . && \
-    rm -rf /tmp/so-vits-svc
+# Models will be installed on-demand in the handler or via model manager
+# This keeps the base image lightweight and avoids dependency conflicts
 
 # Create directories for local temp data
 RUN mkdir -p /workspace/temp

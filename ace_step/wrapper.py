@@ -116,11 +116,16 @@ class ACEStepGenerator:
     def _load_ace_step_direct(self):
         """Direct loading using ACE-Step's own loading mechanism."""
         try:
-            # Try to use ACE-Step's native inference interface
-            import sys
-            ace_step_path = os.path.join(self.model_path, 'inference')
-            if os.path.exists(ace_step_path):
-                sys.path.append(ace_step_path)
+            # Try to install ACE-Step if not available
+            try:
+                import ace_step
+            except ImportError:
+                logger.info("Installing ACE-Step from source...")
+                subprocess.run([
+                    'pip', 'install', 
+                    'git+https://github.com/ace-step/ACE-Step.git'
+                ], check=True)
+                import ace_step
             
             # ACE-Step typically uses a pipeline-based approach
             from transformers import pipeline

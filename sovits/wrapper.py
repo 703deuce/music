@@ -180,8 +180,16 @@ class SoVitsSVCProcessor:
             Dictionary with cloning metadata
         """
         try:
-            # Import so-vits-svc modules (correct import path)
-            from so_vits_svc.inference.infer_tool import Svc
+            # Try to install so-vits-svc if not available
+            try:
+                from so_vits_svc.inference.infer_tool import Svc
+            except ImportError:
+                logger.info("Installing so-vits-svc from source...")
+                subprocess.run([
+                    'pip', 'install', 
+                    'git+https://github.com/voicepaw/so-vits-svc.git'
+                ], check=True)
+                from so_vits_svc.inference.infer_tool import Svc
             
             # Validate voice model
             available_voices = self.list_available_voices()
