@@ -47,13 +47,16 @@ RUN apt-get update && apt-get install -y \
 # Create symbolic link for python
 RUN ln -s /usr/bin/python3 /usr/bin/python
 
-# Upgrade pip
+# Upgrade pip and install build tools
 RUN pip install --upgrade pip setuptools wheel
 
-# Install PyTorch with CUDA support first (for better dependency resolution)
+# Install build dependencies first
+RUN pip install Cython>=0.29.0 numpy>=1.21.0
+
+# Install PyTorch with CUDA support (for better dependency resolution)
 RUN pip install torch==2.1.0 torchaudio==2.1.0 --index-url https://download.pytorch.org/whl/cu121
 
-# Copy requirements and install Python dependencies
+# Copy requirements and install remaining Python dependencies
 COPY requirements.txt .
 RUN pip install -r requirements.txt
 

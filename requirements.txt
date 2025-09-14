@@ -1,5 +1,10 @@
 # RunPod Music AI API Suite Requirements
 
+# Build dependencies (must be installed first)
+Cython>=0.29.0
+setuptools>=65.0.0
+wheel>=0.37.0
+
 # Core dependencies
 torch>=2.0.0
 torchaudio>=2.0.0
@@ -71,7 +76,7 @@ aubio>=0.4.9
 # nvidia-ml-py>=12.535.77
 
 # Additional audio libraries
-madmom>=0.16.1
+# madmom>=0.16.1  # Commented out due to complex build requirements
 mir_eval>=0.7
 
 # Signal processing
