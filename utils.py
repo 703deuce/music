@@ -121,6 +121,11 @@ def upload_audio(local_path: str, public: bool = True) -> str:
         'storage_bucket': os.getenv('FIREBASE_STORAGE_BUCKET')
     }
     
+    # Log configuration status for debugging
+    logger.info(f"Firebase config: api_key={'***' if firebase_config['api_key'] else None}, "
+               f"project_id={firebase_config['project_id']}, "
+               f"bucket={firebase_config['storage_bucket']}")
+    
     if all(firebase_config.values()):
         try:
             return _upload_to_firebase(local_path, filename, file_id, firebase_config)

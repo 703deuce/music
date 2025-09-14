@@ -2,8 +2,8 @@
 # Each AI model will handle its own dependencies when installed
 
 # Core Python dependencies for our handler
-torch>=2.0.0
-torchaudio>=2.0.0
+torch==2.0.1
+torchaudio==2.0.2
 numpy==1.24.3
 soundfile>=0.12.1
 requests>=2.28.0

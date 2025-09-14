@@ -222,11 +222,12 @@ def separate_stems(input_path: str, output_dir: str, model: str = 'htdemucs',
         if not os.path.exists(input_path):
             raise ValueError(f"Input file does not exist: {input_path}")
         
-        # Use CLI or Python API
-        if use_cli:
-            stem_files = processor.separate_cli(input_path, output_dir, model)
-        else:
+        # Try Python API first, fallback to CLI if needed
+        try:
             stem_files = processor.separate_python(input_path, output_dir, model)
+        except Exception as e:
+            logger.warning(f"Python API failed, trying CLI: {str(e)}")
+            stem_files = processor.separate_cli(input_path, output_dir, model)
         
         # Filter requested stems
         if stems:
