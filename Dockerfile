@@ -76,7 +76,7 @@ USER musicai
 
 # Set environment variables for RunPod volume storage
 ENV RUNPOD_VOLUME_PATH=/runpod-volume
-ENV PYTHONPATH=/workspace:$PYTHONPATH
+ENV PYTHONPATH=/workspace
 
 # Create volume mount point (RunPod will mount the persistent volume here)
 USER root
@@ -105,76 +105,5 @@ LABEL version="1.0.0"
 # Expose port (if needed for local testing)
 EXPOSE 8000
 
-# Optional: Add model download script
-COPY <<EOF /workspace/download_models.py
-#!/usr/bin/env python3
-"""
-Download required models for the Music AI API Suite.
-Run this script to pre-download models and reduce cold start times.
-"""
-
-import os
-import logging
-from pathlib import Path
-
-logging.basicConfig(level=logging.INFO)
-logger = logging.getLogger(__name__)
-
-def download_ace_step_model():
-    """Download ACE-Step model."""
-    try:
-        from huggingface_hub import snapshot_download
-        model_path = "/workspace/models/ace-step"
-        
-        logger.info("Downloading ACE-Step model...")
-        snapshot_download(
-            repo_id="ACE-Step/ACE-Step-v1-3.5B",
-            local_dir=model_path,
-            local_dir_use_symlinks=False
-        )
-        logger.info(f"ACE-Step model downloaded to {model_path}")
-    except Exception as e:
-        logger.error(f"Failed to download ACE-Step model: {e}")
-
-def download_demucs_models():
-    """Download Demucs models."""
-    try:
-        import demucs.pretrained
-        
-        models = ['htdemucs', 'htdemucs_ft', 'mdx_extra']
-        for model in models:
-            try:
-                logger.info(f"Downloading Demucs model: {model}")
-                demucs.pretrained.get_model(model)
-                logger.info(f"Downloaded {model}")
-            except Exception as e:
-                logger.warning(f"Failed to download {model}: {e}")
-    except Exception as e:
-        logger.error(f"Failed to download Demucs models: {e}")
-
-def setup_sovits_models():
-    """Setup so-vits-svc models directory."""
-    models_dir = Path("/workspace/models/sovits")
-    models_dir.mkdir(parents=True, exist_ok=True)
-    
-    # Create example voice model structure
-    example_dir = models_dir / "example_voice"
-    example_dir.mkdir(exist_ok=True)
-    
-    logger.info(f"so-vits-svc models directory created: {models_dir}")
-    logger.info("Add your voice models to this directory")
-
-if __name__ == "__main__":
-    logger.info("Starting model downloads...")
-    
-    download_demucs_models()
-    download_ace_step_model()
-    setup_sovits_models()
-    
-    logger.info("Model setup complete!")
-EOF
-
-RUN chmod +x /workspace/download_models.py
-
-# Optional: Run model download during build (uncomment if desired)
-# RUN python /workspace/download_models.py
+# Models will be downloaded on-demand via model_manager.py when needed
+# This keeps the Docker image lightweight and builds faster
