@@ -1,6 +1,6 @@
 # RunPod Music AI API Suite Dockerfile
 # Optimized for serverless GPU deployment
-# Cache buster: 2025-09-14-rebuild-002-fix-numpy
+# Cache buster: 2025-09-14-rebuild-003-fix-runpod-integration
 
 # Use NVIDIA CUDA base image with Python
 FROM nvidia/cuda:12.1.1-cudnn8-devel-ubuntu22.04
@@ -95,11 +95,8 @@ USER musicai
 HEALTHCHECK --interval=30s --timeout=30s --start-period=5s --retries=3 \
     CMD python -c "import torch; print('CUDA available:', torch.cuda.is_available())"
 
-# RunPod serverless handler
+# RunPod serverless handler with proper logging
 CMD ["python", "-u", "handler.py"]
-
-# Alternative: If using RunPod's handler system
-# CMD ["python", "-m", "runpod.serverless.start", "--handler_file=handler.py"]
 
 # Labels for documentation
 LABEL maintainer="Music AI API Suite"

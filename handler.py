@@ -299,9 +299,64 @@ def handle_storage_stats() -> Dict[str, Any]:
 
 # RunPod serverless entry point
 if __name__ == "__main__":
-    # For local testing
-    import sys
-    if len(sys.argv) > 1:
-        test_event = json.loads(sys.argv[1])
-        result = handler(test_event)
-        print(json.dumps(result, indent=2))
+    try:
+        import runpod
+        
+        # Health check endpoint
+        def health_check():
+            """Simple health check for RunPod."""
+            try:
+                import torch
+                return {
+                    "status": "healthy",
+                    "cuda_available": torch.cuda.is_available(),
+                    "gpu_count": torch.cuda.device_count() if torch.cuda.is_available() else 0
+                }
+            except Exception as e:
+                return {
+                    "status": "unhealthy", 
+                    "error": str(e)
+                }
+        
+        # Wrapper function for RunPod
+        def runpod_handler(event):
+            """Wrapper for RunPod serverless integration."""
+            try:
+                # Extract input from RunPod event format
+                job_input = event.get("input", event)
+                
+                # Call our main handler
+                result = handler(job_input)
+                
+                # Return in RunPod format
+                return {"output": result}
+                
+            except Exception as e:
+                logger.error(f"RunPod handler error: {str(e)}")
+                logger.error(traceback.format_exc())
+                return {
+                    "error": str(e),
+                    "traceback": traceback.format_exc()
+                }
+        
+        # Test basic functionality before starting
+        logger.info("Testing basic functionality...")
+        health = health_check()
+        logger.info(f"Health check: {health}")
+        
+        # Start RunPod serverless worker
+        logger.info("Starting RunPod serverless worker...")
+        runpod.serverless.start({"handler": runpod_handler})
+        
+    except ImportError:
+        # Fallback for local testing without runpod
+        logger.info("RunPod not available, running in local mode")
+        import sys
+        if len(sys.argv) > 1:
+            test_event = json.loads(sys.argv[1])
+            result = handler(test_event)
+            print(json.dumps(result, indent=2))
+        else:
+            # Test with storage stats
+            test_result = handle_storage_stats()
+            print(json.dumps(test_result, indent=2))
