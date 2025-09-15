@@ -77,6 +77,9 @@ def handler(event: Dict[str, Any]) -> Dict[str, Any]:
             if task == 'ace_step':
                 return handle_ace_step(params, tmpdir)
                 
+            elif task == 'debug_ace_step':
+                return handle_debug_ace_step(tmpdir)
+                
             elif task == 'separate':
                 if not local_input:
                     raise ValueError("input_url required for stem separation")
@@ -108,6 +111,68 @@ def handler(event: Dict[str, Any]) -> Dict[str, Any]:
             "error": str(e),
             "traceback": traceback.format_exc()
         }
+
+
+def handle_debug_ace_step(tmpdir: str) -> Dict[str, Any]:
+    """Debug ACE-Step installation and availability."""
+    logger.info("Starting ACE-Step installation debug")
+    
+    debug_info = {
+        'task': 'debug_ace_step',
+        'checks': {}
+    }
+    
+    try:
+        import subprocess
+        import sys
+        
+        # Check 1: Python version
+        debug_info['checks']['python_version'] = sys.version
+        
+        # Check 2: Try importing acestep
+        try:
+            import acestep
+            debug_info['checks']['acestep_import'] = {
+                'success': True,
+                'dir': str(dir(acestep)),
+                'file': str(acestep.__file__) if hasattr(acestep, '__file__') else 'No __file__'
+            }
+        except ImportError as e:
+            debug_info['checks']['acestep_import'] = {
+                'success': False,
+                'error': str(e)
+            }
+        
+        # Check 3: Try CLI command
+        try:
+            result = subprocess.run(['acestep', '--help'], capture_output=True, text=True, timeout=30)
+            debug_info['checks']['acestep_cli'] = {
+                'success': result.returncode == 0,
+                'stdout': result.stdout[:500],
+                'stderr': result.stderr[:500]
+            }
+        except Exception as e:
+            debug_info['checks']['acestep_cli'] = {
+                'success': False,
+                'error': str(e)
+            }
+        
+        # Check 4: Installed packages
+        try:
+            result = subprocess.run(['pip', 'list'], capture_output=True, text=True, timeout=30)
+            packages = result.stdout
+            # Look for ace-step related packages
+            ace_packages = [line for line in packages.split('\n') if 'ace' in line.lower()]
+            debug_info['checks']['installed_packages'] = ace_packages
+        except Exception as e:
+            debug_info['checks']['installed_packages'] = {'error': str(e)}
+        
+        return debug_info
+        
+    except Exception as e:
+        logger.error(f"Debug failed: {str(e)}")
+        debug_info['error'] = str(e)
+        return debug_info
 
 
 def handle_ace_step(params: Dict[str, Any], tmpdir: str) -> Dict[str, Any]:
