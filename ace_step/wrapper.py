@@ -62,15 +62,31 @@ class ACEStepGenerator:
             # Try to import ACE-Step directly
             try:
                 # ACE-Step uses a custom pipeline approach
-                from transformers import pipeline, AutoProcessor, AutoModelForTextToWaveform
+                # Try simpler loading first without AutoProcessor
+                from transformers import pipeline
                 
-                # Load processor and model for text-to-audio
-                self.processor = AutoProcessor.from_pretrained(self.model_path)
-                self.model = AutoModelForTextToWaveform.from_pretrained(
-                    self.model_path,
-                    torch_dtype=torch.float16 if self.device.type == 'cuda' else torch.float32,
-                    device_map='auto' if self.device.type == 'cuda' else None
-                )
+                try:
+                    # Try using text-to-audio pipeline directly
+                    self.model = pipeline(
+                        "text-to-audio",
+                        model=self.model_path,
+                        device=self.device,
+                        torch_dtype=torch.float16 if self.device.type == 'cuda' else torch.float32,
+                    )
+                    self.processor = None  # Pipeline handles processing
+                except Exception as pipeline_error:
+                    logger.warning(f"Pipeline loading failed, trying manual loading: {pipeline_error}")
+                    
+                    # Fallback to manual loading
+                    from transformers import AutoProcessor, AutoModel
+                    
+                    self.processor = AutoProcessor.from_pretrained(self.model_path, trust_remote_code=True)
+                    self.model = AutoModel.from_pretrained(
+                        self.model_path,
+                        torch_dtype=torch.float16 if self.device.type == 'cuda' else torch.float32,
+                        device_map='auto' if self.device.type == 'cuda' else None,
+                        trust_remote_code=True
+                    )
                 
                 if self.device.type == 'cpu':
                     self.model = self.model.to(self.device)
