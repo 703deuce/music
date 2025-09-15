@@ -1,6 +1,6 @@
 # RunPod Music AI API Suite Dockerfile
 # Optimized for serverless GPU deployment
-# Cache buster: 2025-09-14-rebuild-007-bypass-ace-step-transformers-issues
+# Cache buster: 2025-09-14-rebuild-008-ace-step-official-cli-implementation
 
 # Use NVIDIA CUDA base image with Python
 FROM nvidia/cuda:12.1.1-cudnn8-devel-ubuntu22.04
@@ -64,6 +64,9 @@ RUN pip install -r requirements.txt
 
 # Install Demucs from GitHub source (required for proper API access)
 RUN pip install git+https://github.com/facebookresearch/demucs
+
+# Install ACE-Step from GitHub source (as per official docs)
+RUN pip install git+https://github.com/ace-step/ACE-Step.git
 
 # Models will be installed on-demand in the handler or via model manager
 # This keeps the base image lightweight and avoids dependency conflicts
