@@ -17,7 +17,7 @@ transformers>=4.21.0
 huggingface_hub>=0.16.0
 
 # Only install models that are available on PyPI
-demucs[remote]>=4.0.0
+# demucs - installed from GitHub source in Dockerfile
 matchering>=2.0.5
 
 # Utilities for our handler

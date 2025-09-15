@@ -1,6 +1,6 @@
 # RunPod Music AI API Suite Dockerfile
 # Optimized for serverless GPU deployment
-# Cache buster: 2025-09-14-rebuild-004-fix-pytorch-demucs
+# Cache buster: 2025-09-14-rebuild-005-pytorch-2.5.1-demucs-github
 
 # Use NVIDIA CUDA base image with Python
 FROM nvidia/cuda:12.1.1-cudnn8-devel-ubuntu22.04
@@ -54,12 +54,15 @@ RUN pip install --upgrade pip setuptools wheel
 # Install NumPy first to avoid compatibility issues
 RUN pip install numpy==1.24.3
 
-# Install PyTorch with CUDA support (use +cu121 suffix for CUDA 12.1)
-RUN pip install torch==2.1.0+cu121 torchaudio==2.1.0+cu121 --index-url https://download.pytorch.org/whl/cu121
+# Install PyTorch with CUDA support (latest for ACE-Step compatibility)
+RUN pip install torch==2.5.1+cu121 torchaudio==2.5.1+cu121 --index-url https://download.pytorch.org/whl/cu121
 
 # Copy requirements and install core dependencies only
 COPY requirements.txt .
 RUN pip install -r requirements.txt
+
+# Install Demucs from GitHub source (required for proper API access)
+RUN pip install git+https://github.com/facebookresearch/demucs
 
 # Models will be installed on-demand in the handler or via model manager
 # This keeps the base image lightweight and avoids dependency conflicts

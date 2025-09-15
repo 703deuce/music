@@ -114,20 +114,17 @@ def upload_audio(local_path: str, public: bool = True) -> str:
     filename = os.path.basename(local_path)
     file_id = uuid.uuid4().hex[:12]
     
-    # Try Firebase Storage first (if configured)
+    # Try Firebase Storage first (using public bucket - no auth required)
     firebase_config = {
         'api_key': os.getenv('FIREBASE_API_KEY'),
         'project_id': os.getenv('FIREBASE_PROJECT_ID'),
-        'storage_bucket': os.getenv('FIREBASE_STORAGE_BUCKET')
+        'storage_bucket': os.getenv('FIREBASE_STORAGE_BUCKET', 'aitts-d4c6d.firebasestorage.app')  # Default bucket
     }
     
-    # Log configuration status for debugging
-    logger.info(f"Firebase config: api_key={'***' if firebase_config['api_key'] else None}, "
-               f"project_id={firebase_config['project_id']}, "
-               f"bucket={firebase_config['storage_bucket']}")
-    
-    if all(firebase_config.values()):
+    # Firebase Storage doesn't require API key for uploads to public bucket
+    if firebase_config['storage_bucket']:
         try:
+            logger.info(f"Using Firebase Storage: {firebase_config['storage_bucket']}")
             return _upload_to_firebase(local_path, filename, file_id, firebase_config)
         except Exception as e:
             logger.warning(f"Firebase upload failed, trying alternatives: {e}")
