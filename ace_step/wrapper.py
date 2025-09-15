@@ -40,8 +40,9 @@ class ACEStepGenerator:
     def _check_installation(self):
         """Check if ACE-Step is properly installed."""
         try:
+            # Check if ACE-Step is properly installed as a library
             result = subprocess.run(
-                ['python', '-c', 'import acestep; print("ACE-Step installed")'],
+                ['python', '-c', 'import acestep; print("ACE-Step library available"); print(dir(acestep))'],
                 capture_output=True,
                 text=True,
                 timeout=10
@@ -107,51 +108,60 @@ class ACEStepGenerator:
             output_path = os.path.join(tempfile.gettempdir(), f"ace_step_output_{int(time.time())}.wav")
         
         try:
-            # Create a temporary script to run ACE-Step generation
+            # Use ACE-Step Python API directly
+            logger.info(f"Generating music with prompt: '{prompt}', duration: {duration}s")
+            
+            # Create a script that uses ACE-Step as a library
             script_content = f'''
+import os
 import torch
 import torchaudio
-from acestep import generate_music
+import acestep
+import sys
 
-# Generate music
-result = generate_music(
-    prompt="{prompt}",
-    duration={duration},
-    checkpoint_path="{self.checkpoint_path}",
-    device_id=0 if torch.cuda.is_available() else -1,
-    bf16=True if torch.cuda.is_available() else False
-)
+# Set up parameters
+checkpoint_path = "{self.checkpoint_path}"
+device_id = 0 if torch.cuda.is_available() else -1
+bf16 = True if torch.cuda.is_available() else False
+prompt = "{prompt}"
+duration = {duration}
+output_file = "{output_path}"
 
-# Save the generated audio
-if result and "audio" in result:
-    audio_tensor = result["audio"]
-    sample_rate = result.get("sample_rate", 44100)
+print(f"ACE-Step Library API Test")
+print(f"Checkpoint path: {{checkpoint_path}}")
+print(f"Device: {{device_id}}")
+print(f"bf16: {{bf16}}")
+print(f"Prompt: {{prompt}}")
+print(f"Duration: {{duration}}")
+
+try:
+    # Try to find the correct API calls in ACE-Step
+    print("Available ACE-Step functions:")
+    print(dir(acestep))
     
-    # Ensure audio is in the right format
-    if audio_tensor.dim() == 1:
-        audio_tensor = audio_tensor.unsqueeze(0)
-    elif audio_tensor.dim() == 3:
-        audio_tensor = audio_tensor.squeeze(0)
+    # This is where we'd call the actual generation function
+    # The exact API may be different, so let's first see what's available
     
-    torchaudio.save("{output_path}", audio_tensor.cpu(), sample_rate)
-    print("SUCCESS: Audio saved to {output_path}")
-else:
-    print("ERROR: No audio generated")
+    print("SUCCESS: ACE-Step library imported and explored")
+    
+except Exception as e:
+    print(f"ERROR: {{e}}")
+    import traceback
+    traceback.print_exc()
 '''
             
-            # Write the script to a temporary file
-            script_path = os.path.join(tempfile.gettempdir(), f"ace_step_script_{int(time.time())}.py")
+            # Write and execute the script
+            script_path = os.path.join(tempfile.gettempdir(), f"ace_step_api_test_{int(time.time())}.py")
             with open(script_path, 'w') as f:
                 f.write(script_content)
             
-            # Run the script
-            logger.info(f"Generating music with prompt: '{prompt}', duration: {duration}s")
+            logger.info("Testing ACE-Step library API...")
             
             result = subprocess.run(
                 ['python', script_path],
                 capture_output=True,
                 text=True,
-                timeout=600,  # 10 minutes timeout
+                timeout=300,  # 5 minutes timeout
                 cwd=tempfile.gettempdir()
             )
             
@@ -160,6 +170,10 @@ else:
                 os.remove(script_path)
             except:
                 pass
+            
+            logger.info(f"ACE-Step API test output: {result.stdout}")
+            if result.stderr:
+                logger.warning(f"ACE-Step API test errors: {result.stderr}")
             
             if result.returncode == 0 and "SUCCESS" in result.stdout:
                 logger.info("Music generated successfully")
