@@ -51,7 +51,7 @@ def generate_music(prompt: str, duration: int = 60, output_path: str = None) -> 
     try:
         # Use the simple subprocess approach for ACE-Step CLI
         cmd = [
-            "python", "-m", "ace_step.inference", 
+            "python", "-m", "acestep.inference", 
             "--prompt", prompt,
             "--duration", str(duration),
             "--output_path", output_path,
