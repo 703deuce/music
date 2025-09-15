@@ -1,6 +1,6 @@
 # RunPod Music AI API Suite Dockerfile
 # Optimized for serverless GPU deployment
-# Cache buster: 2025-09-14-rebuild-010-ace-step-cli-only-no-fallbacks
+# Cache buster: 2025-09-14-rebuild-011-simple-subprocess-cli
 
 # Use NVIDIA CUDA base image with Python
 FROM nvidia/cuda:12.1.1-cudnn8-devel-ubuntu22.04
