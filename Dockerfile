@@ -1,6 +1,6 @@
 # RunPod Music AI API Suite Dockerfile
 # Optimized for serverless GPU deployment
-# Cache buster: 2025-09-14-rebuild-025-remove-redundant-ace-step-copy
+# Cache buster: 2025-09-14-rebuild-026-step-by-step-debug-installation
 
 # Use NVIDIA CUDA base image with Python
 FROM nvidia/cuda:12.1.1-cudnn8-devel-ubuntu22.04
@@ -66,17 +66,19 @@ RUN pip install -r requirements.txt
 RUN pip install git+https://github.com/facebookresearch/demucs
 
 # ACE-Step is already copied with the main application code above
-# Verify setup.py exists and install ACE-Step using official method
-RUN cd /workspace/ACE-Step && \
-    # Debug: Check if setup.py exists
-    ls -la setup.py && \
-    # First install dependencies that won't conflict with our PyTorch
-    pip install --no-deps datasets diffusers gradio librosa loguru \
-                pypinyin py3langid hangul-romanize num2words spacy \
-                cutlet "fugashi[unidic-lite]" click peft tensorboard tensorboardX \
-                pytorch_lightning accelerate && \
-    # Install ACE-Step itself in editable mode (official method)
-    pip install -e . --no-deps
+# Debug and install ACE-Step step by step
+RUN ls -la /workspace/ACE-Step/
+RUN ls -la /workspace/ACE-Step/setup.py
+RUN cd /workspace/ACE-Step && pwd && ls -la
+
+# Install ACE-Step dependencies separately to isolate issues
+RUN pip install --no-deps datasets diffusers gradio librosa loguru
+RUN pip install --no-deps pypinyin py3langid hangul-romanize num2words spacy
+RUN pip install --no-deps cutlet "fugashi[unidic-lite]" click peft
+RUN pip install --no-deps tensorboard tensorboardX pytorch_lightning accelerate
+
+# Install ACE-Step itself in editable mode
+RUN cd /workspace/ACE-Step && pip install -e . --no-deps
 
 # Models will be installed on-demand in the handler or via model manager
 # This keeps the base image lightweight and avoids dependency conflicts
