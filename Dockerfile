@@ -1,6 +1,6 @@
 # RunPod Music AI API Suite Dockerfile
 # Optimized for serverless GPU deployment
-# Cache buster: 2025-09-14-rebuild-020-fix-ace-step-dependency-conflicts
+# Cache buster: 2025-09-14-rebuild-021-fix-cuda-library-mismatch
 
 # Use NVIDIA CUDA base image with Python
 FROM nvidia/cuda:12.1.1-cudnn8-devel-ubuntu22.04
@@ -56,7 +56,7 @@ RUN pip install numpy==1.24.3
 
 # Install PyTorch with CUDA support (force reinstall to avoid version conflicts)
 RUN pip uninstall -y torch torchaudio torchvision
-RUN pip install torch==2.5.1+cu121 torchaudio==2.5.1+cu121 --index-url https://download.pytorch.org/whl/cu121 --force-reinstall --no-cache-dir
+RUN pip install torch==2.4.0+cu121 torchaudio==2.4.0+cu121 torchvision==0.19.0+cu121 --index-url https://download.pytorch.org/whl/cu121 --force-reinstall --no-cache-dir
 
 # Copy requirements and install core dependencies only
 COPY requirements.txt .
@@ -70,13 +70,14 @@ COPY ACE-Step /workspace/ACE-Step
 
 # Install ACE-Step dependencies (skip conflicting packages we already installed)
 RUN cd /workspace/ACE-Step && \
-    # Install ACE-Step requirements except conflicting ones
-    grep -v "torch" requirements.txt | grep -v "transformers" | grep -v "numpy" | pip install -r /dev/stdin && \
-    # Install ACE-Step specific packages that don't conflict
-    pip install datasets==3.4.1 diffusers>=0.33.0 gradio librosa==0.11.0 loguru==0.7.3 \
-                pypinyin==0.53.0 pytorch_lightning==2.5.1 py3langid==0.3.0 hangul-romanize==0.1.0 \
-                num2words==0.5.14 spacy==3.8.4 accelerate==1.6.0 cutlet "fugashi[unidic-lite]" \
-                click peft tensorboard tensorboardX
+    # Install ACE-Step specific packages that don't conflict with our PyTorch
+    pip install --no-deps datasets==3.4.1 diffusers>=0.33.0 gradio librosa==0.11.0 loguru==0.7.3 \
+                pypinyin==0.53.0 py3langid==0.3.0 hangul-romanize==0.1.0 \
+                num2words==0.5.14 spacy==3.8.4 cutlet "fugashi[unidic-lite]" \
+                click peft tensorboard tensorboardX && \
+    # Install pytorch_lightning and accelerate carefully to avoid PyTorch conflicts
+    pip install --no-deps pytorch_lightning==2.5.1 && \
+    pip install --no-deps accelerate==1.6.0
 
 # Models will be installed on-demand in the handler or via model manager
 # This keeps the base image lightweight and avoids dependency conflicts
