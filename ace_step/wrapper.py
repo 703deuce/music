@@ -49,59 +49,66 @@ def generate_music(prompt: str, duration: int = 60, output_path: str = None) -> 
     logger.info(f"Output path: {output_path}")
     
     try:
-        # Try to use ACE-Step as a Python library (API Usage approach)
-        script_content = f'''
-import sys
-import os
-import torch
-
-# Set checkpoint path
-checkpoint_path = "{checkpoint_path}"
-os.makedirs(checkpoint_path, exist_ok=True)
-
-try:
-    # Import ACE-Step library
-    import acestep
-    print("ACE-Step library imported successfully")
-    
-    # Try to find the correct API for generation
-    print("Available ACE-Step attributes:")
-    print([attr for attr in dir(acestep) if not attr.startswith('_')])
-    
-    # This is exploratory - we need to find the right API
-    print("SUCCESS: ACE-Step library exploration completed")
-    
-except ImportError as e:
-    print(f"IMPORT_ERROR: ACE-Step not available - {{e}}")
-    sys.exit(1)
-    
-except Exception as e:
-    print(f"ERROR: {{e}}")
-    import traceback
-    traceback.print_exc()
-    sys.exit(1)
-'''
+        # Use the standalone infer.py script in the ACE-Step root directory
+        # Based on user info: infer.py is a standalone CLI script in root folder
         
-        # Write and execute the exploration script
-        script_path = os.path.join(tempfile.gettempdir(), f"ace_step_explore_{int(time.time())}.py")
-        with open(script_path, 'w') as f:
-            f.write(script_content)
+        # Find the ACE-Step installation directory
+        import sys
+        import site
         
-        logger.info("Exploring ACE-Step library API...")
+        # Common locations where ACE-Step might be installed
+        possible_paths = [
+            "/usr/local/lib/python3.10/site-packages/ACE-Step",
+            "/usr/local/lib/python3.10/site-packages/ace-step", 
+            "/opt/conda/lib/python3.10/site-packages/ACE-Step",
+            "/workspace",  # If cloned directly
+            "/runpod-volume/ace-step"  # If in persistent volume
+        ]
         
+        # Check for infer.py in various locations
+        infer_script = None
+        for path in possible_paths:
+            potential_script = os.path.join(path, "infer.py")
+            if os.path.exists(potential_script):
+                infer_script = potential_script
+                logger.info(f"Found infer.py at: {infer_script}")
+                break
+        
+        if not infer_script:
+            # Try to find it via pip show or other methods
+            try:
+                pip_result = subprocess.run(['pip', 'show', 'acestep'], capture_output=True, text=True)
+                if pip_result.returncode == 0:
+                    logger.info(f"ACE-Step pip info: {pip_result.stdout}")
+            except:
+                pass
+            raise FileNotFoundError("infer.py script not found in expected locations")
+        
+        # Build the command to run the standalone script
+        cmd = [
+            "python", infer_script,
+            "--checkpoint_path", checkpoint_path,
+            "--prompt", prompt,
+            "--duration", str(duration),
+            "--output_path", output_path
+        ]
+        
+        # Add GPU parameters if available
+        if torch.cuda.is_available():
+            cmd.extend(["--device_id", "0", "--bf16"])
+        else:
+            cmd.extend(["--device_id", "-1"])
+        
+        logger.info(f"Running ACE-Step infer script: {' '.join(cmd)}")
+        
+        # Execute the command
         result = subprocess.run(
-            ['python', script_path],
+            cmd,
             capture_output=True,
             text=True,
-            timeout=300,  # 5 minutes for exploration
-            cwd=tempfile.gettempdir()
+            timeout=900,  # 15 minutes timeout for model download + generation
+            cwd=os.path.dirname(infer_script)  # Run from script directory
         )
-        
-        # Clean up script
-        try:
-            os.remove(script_path)
-        except:
-            pass
         
         logger.info(f"ACE-Step CLI output: {result.stdout}")
         if result.stderr:
