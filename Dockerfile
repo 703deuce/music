@@ -1,6 +1,6 @@
 # RunPod Music AI API Suite Dockerfile
 # Optimized for serverless GPU deployment
-# Cache buster: 2025-09-14-rebuild-022-disable-torchaudio-temporarily
+# Cache buster: 2025-09-14-rebuild-023-use-official-ace-step-installation
 
 # Use NVIDIA CUDA base image with Python
 FROM nvidia/cuda:12.1.1-cudnn8-devel-ubuntu22.04
@@ -54,9 +54,9 @@ RUN pip install --upgrade pip setuptools wheel
 # Install NumPy first to avoid compatibility issues
 RUN pip install numpy==1.24.3
 
-# Install PyTorch with CUDA support (force reinstall to avoid version conflicts)
+# Install PyTorch with CUDA support (following ACE-Step official instructions)
 RUN pip uninstall -y torch torchaudio torchvision
-RUN pip install torch==2.4.0+cu121 torchaudio==2.4.0+cu121 torchvision==0.19.0+cu121 --index-url https://download.pytorch.org/whl/cu121 --force-reinstall --no-cache-dir
+RUN pip install torch torchvision torchaudio --index-url https://download.pytorch.org/whl/cu121
 
 # Copy requirements and install core dependencies only
 COPY requirements.txt .
@@ -68,16 +68,15 @@ RUN pip install git+https://github.com/facebookresearch/demucs
 # Copy our customized ACE-Step repository (with modified infer.py)
 COPY ACE-Step /workspace/ACE-Step
 
-# Install ACE-Step dependencies (skip conflicting packages we already installed)
+# Install ACE-Step using official method - editable install
 RUN cd /workspace/ACE-Step && \
-    # Install ACE-Step specific packages that don't conflict with our PyTorch
-    pip install --no-deps datasets==3.4.1 diffusers>=0.33.0 gradio librosa==0.11.0 loguru==0.7.3 \
-                pypinyin==0.53.0 py3langid==0.3.0 hangul-romanize==0.1.0 \
-                num2words==0.5.14 spacy==3.8.4 cutlet "fugashi[unidic-lite]" \
-                click peft tensorboard tensorboardX && \
-    # Install pytorch_lightning and accelerate carefully to avoid PyTorch conflicts
-    pip install --no-deps pytorch_lightning==2.5.1 && \
-    pip install --no-deps accelerate==1.6.0
+    # First install dependencies that won't conflict with our PyTorch
+    pip install --no-deps datasets diffusers gradio librosa loguru \
+                pypinyin py3langid hangul-romanize num2words spacy \
+                cutlet "fugashi[unidic-lite]" click peft tensorboard tensorboardX \
+                pytorch_lightning accelerate && \
+    # Install ACE-Step itself in editable mode (official method)
+    pip install -e . --no-deps
 
 # Models will be installed on-demand in the handler or via model manager
 # This keeps the base image lightweight and avoids dependency conflicts
