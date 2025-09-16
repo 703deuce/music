@@ -13,7 +13,7 @@ import tempfile
 import time
 from typing import Dict, Any, Optional
 import torch
-import torchaudio
+# import torchaudio  # Temporarily disabled due to CUDA library conflicts
 
 logger = logging.getLogger(__name__)
 
@@ -118,33 +118,17 @@ def generate_music(prompt: str, duration: int = 60, output_path: str = None) -> 
             
             # Verify output file exists
             if os.path.exists(output_path):
-                # Get audio metadata
-                try:
-                    audio_info = torchaudio.info(output_path)
-                    
-                    return {
-                        "success": True,
-                        "output_path": output_path,
-                        "duration_actual": audio_info.num_frames / audio_info.sample_rate,
-                        "sample_rate": audio_info.sample_rate,
-                        "channels": audio_info.num_channels,
-                        "prompt": prompt,
-                        "method": "ace_step_cli",
-                        "file_size": os.path.getsize(output_path)
-                    }
-                except Exception as info_error:
-                    logger.warning(f"Could not get audio info: {info_error}")
-                    
-                    return {
-                        "success": True,
-                        "output_path": output_path,
-                        "duration_actual": duration,
-                        "sample_rate": 44100,  # Default
-                        "channels": 2,  # Default
-                        "prompt": prompt,
-                        "method": "ace_step_cli",
-                        "file_size": os.path.getsize(output_path)
-                    }
+                # Get audio metadata (simplified - no torchaudio due to CUDA conflicts)
+                return {
+                    "success": True,
+                    "output_path": output_path,
+                    "duration_actual": duration,  # Use requested duration
+                    "sample_rate": 44100,  # Default
+                    "channels": 2,  # Default
+                    "prompt": prompt,
+                    "method": "ace_step_cli",
+                    "file_size": os.path.getsize(output_path)
+                }
             else:
                 raise FileNotFoundError(f"Generated audio file not found at {output_path}")
         else:
