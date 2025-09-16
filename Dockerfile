@@ -1,6 +1,6 @@
 # RunPod Music AI API Suite Dockerfile
 # Optimized for serverless GPU deployment
-# Cache buster: 2025-09-14-rebuild-019-revert-to-working-version
+# Cache buster: 2025-09-14-rebuild-020-fix-ace-step-dependency-conflicts
 
 # Use NVIDIA CUDA base image with Python
 FROM nvidia/cuda:12.1.1-cudnn8-devel-ubuntu22.04
@@ -68,8 +68,15 @@ RUN pip install git+https://github.com/facebookresearch/demucs
 # Copy our customized ACE-Step repository (with modified infer.py)
 COPY ACE-Step /workspace/ACE-Step
 
-# Install ACE-Step dependencies
-RUN cd /workspace/ACE-Step && pip install -r requirements.txt
+# Install ACE-Step dependencies (skip conflicting packages we already installed)
+RUN cd /workspace/ACE-Step && \
+    # Install ACE-Step requirements except conflicting ones
+    grep -v "torch" requirements.txt | grep -v "transformers" | grep -v "numpy" | pip install -r /dev/stdin && \
+    # Install ACE-Step specific packages that don't conflict
+    pip install datasets==3.4.1 diffusers>=0.33.0 gradio librosa==0.11.0 loguru==0.7.3 \
+                pypinyin==0.53.0 pytorch_lightning==2.5.1 py3langid==0.3.0 hangul-romanize==0.1.0 \
+                num2words==0.5.14 spacy==3.8.4 accelerate==1.6.0 cutlet "fugashi[unidic-lite]" \
+                click peft tensorboard tensorboardX
 
 # Models will be installed on-demand in the handler or via model manager
 # This keeps the base image lightweight and avoids dependency conflicts
