@@ -58,11 +58,12 @@ def generate_music(prompt: str, duration: int = 60, output_path: str = None) -> 
         
         # Common locations where ACE-Step might be installed
         possible_paths = [
+            "/workspace/ACE-Step",  # Where we clone it in Dockerfile
+            "/runpod-volume/ace-step",  # If in persistent volume
             "/usr/local/lib/python3.10/site-packages/ACE-Step",
             "/usr/local/lib/python3.10/site-packages/ace-step", 
             "/opt/conda/lib/python3.10/site-packages/ACE-Step",
-            "/workspace",  # If cloned directly
-            "/runpod-volume/ace-step"  # If in persistent volume
+            "/workspace"  # If cloned directly to root
         ]
         
         # Check for infer.py in various locations
