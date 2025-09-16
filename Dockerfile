@@ -62,23 +62,9 @@ RUN pip install torch torchvision torchaudio --index-url https://download.pytorc
 COPY requirements.txt .
 RUN pip install -r requirements.txt
 
-# Install Demucs from GitHub source (required for proper API access)
-RUN pip install git+https://github.com/facebookresearch/demucs
-
-# ACE-Step is already copied with the main application code above
-# Debug and install ACE-Step step by step
-RUN ls -la /workspace/ACE-Step/
-RUN ls -la /workspace/ACE-Step/setup.py
-RUN cd /workspace/ACE-Step && pwd && ls -la
-
-# Install ACE-Step dependencies separately to isolate issues
-RUN pip install --no-deps datasets diffusers gradio librosa loguru
-RUN pip install --no-deps pypinyin py3langid hangul-romanize num2words spacy
-RUN pip install --no-deps cutlet "fugashi[unidic-lite]" click peft
-RUN pip install --no-deps tensorboard tensorboardX pytorch_lightning accelerate
-
-# Install ACE-Step itself in editable mode
-RUN cd /workspace/ACE-Step && pip install -e . --no-deps
+# Install ACE-Step using official method - clone and install
+RUN git clone https://github.com/ace-step/ACE-Step.git /workspace/ACE-Step-official
+RUN cd /workspace/ACE-Step-official && pip install -e .
 
 # Models will be installed on-demand in the handler or via model manager
 # This keeps the base image lightweight and avoids dependency conflicts
