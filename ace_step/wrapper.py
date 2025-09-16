@@ -49,31 +49,59 @@ def generate_music(prompt: str, duration: int = 60, output_path: str = None) -> 
     logger.info(f"Output path: {output_path}")
     
     try:
-        # Use the simple subprocess approach for ACE-Step CLI
-        cmd = [
-            "python", "-m", "acestep.inference", 
-            "--prompt", prompt,
-            "--duration", str(duration),
-            "--output_path", output_path,
-            "--checkpoint_path", checkpoint_path
-        ]
+        # Try to use ACE-Step as a Python library (API Usage approach)
+        script_content = f'''
+import sys
+import os
+import torch
+
+# Set checkpoint path
+checkpoint_path = "{checkpoint_path}"
+os.makedirs(checkpoint_path, exist_ok=True)
+
+try:
+    # Import ACE-Step library
+    import acestep
+    print("ACE-Step library imported successfully")
+    
+    # Try to find the correct API for generation
+    print("Available ACE-Step attributes:")
+    print([attr for attr in dir(acestep) if not attr.startswith('_')])
+    
+    # This is exploratory - we need to find the right API
+    print("SUCCESS: ACE-Step library exploration completed")
+    
+except ImportError as e:
+    print(f"IMPORT_ERROR: ACE-Step not available - {{e}}")
+    sys.exit(1)
+    
+except Exception as e:
+    print(f"ERROR: {{e}}")
+    import traceback
+    traceback.print_exc()
+    sys.exit(1)
+'''
         
-        # Add GPU parameters if available
-        if torch.cuda.is_available():
-            cmd.extend(["--device_id", "0", "--bf16", "true"])
-        else:
-            cmd.extend(["--device_id", "-1", "--bf16", "false"])
+        # Write and execute the exploration script
+        script_path = os.path.join(tempfile.gettempdir(), f"ace_step_explore_{int(time.time())}.py")
+        with open(script_path, 'w') as f:
+            f.write(script_content)
         
-        logger.info(f"Running ACE-Step CLI: {' '.join(cmd)}")
+        logger.info("Exploring ACE-Step library API...")
         
-        # Execute the command
         result = subprocess.run(
-            cmd,
+            ['python', script_path],
             capture_output=True,
             text=True,
-            timeout=900,  # 15 minutes timeout for model download + generation
+            timeout=300,  # 5 minutes for exploration
             cwd=tempfile.gettempdir()
         )
+        
+        # Clean up script
+        try:
+            os.remove(script_path)
+        except:
+            pass
         
         logger.info(f"ACE-Step CLI output: {result.stdout}")
         if result.stderr:
