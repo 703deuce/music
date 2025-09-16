@@ -85,20 +85,17 @@ def generate_music(prompt: str, duration: int = 60, output_path: str = None) -> 
                 pass
             raise FileNotFoundError("infer.py script not found in expected locations")
         
-        # Build the command to run the standalone script
+        # Build the command to run our customized infer.py script
         cmd = [
             "python", infer_script,
             "--checkpoint_path", checkpoint_path,
             "--prompt", prompt,
             "--duration", str(duration),
-            "--output_path", output_path
+            "--output_path", output_path,
+            "--lyrics", "",  # Empty lyrics for now
+            "--device_id", str(0 if torch.cuda.is_available() else -1),
+            "--bf16", str(torch.cuda.is_available()).lower()
         ]
-        
-        # Add GPU parameters if available
-        if torch.cuda.is_available():
-            cmd.extend(["--device_id", "0", "--bf16"])
-        else:
-            cmd.extend(["--device_id", "-1"])
         
         logger.info(f"Running ACE-Step infer script: {' '.join(cmd)}")
         

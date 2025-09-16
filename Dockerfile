@@ -1,6 +1,6 @@
 # RunPod Music AI API Suite Dockerfile
 # Optimized for serverless GPU deployment
-# Cache buster: 2025-09-14-rebuild-016-clone-ace-step-repo-for-infer-py
+# Cache buster: 2025-09-14-rebuild-017-use-local-customized-ace-step
 
 # Use NVIDIA CUDA base image with Python
 FROM nvidia/cuda:12.1.1-cudnn8-devel-ubuntu22.04
@@ -65,8 +65,8 @@ RUN pip install -r requirements.txt
 # Install Demucs from GitHub source (required for proper API access)
 RUN pip install git+https://github.com/facebookresearch/demucs
 
-# Clone ACE-Step repository to get the infer.py script
-RUN git clone https://github.com/ace-step/ACE-Step.git /workspace/ACE-Step
+# Copy our customized ACE-Step repository (with modified infer.py)
+COPY ACE-Step /workspace/ACE-Step
 
 # Install ACE-Step dependencies
 RUN cd /workspace/ACE-Step && pip install -r requirements.txt
