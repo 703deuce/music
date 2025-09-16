@@ -101,6 +101,9 @@ def handler(event: Dict[str, Any]) -> Dict[str, Any]:
             elif task == 'storage_stats':
                 return handle_storage_stats()
                 
+            elif task == 'download_file':
+                return handle_download_file(params)
+                
             else:
                 raise ValueError(f"Unknown task: {task}")
                 
@@ -363,6 +366,48 @@ def handle_storage_stats() -> Dict[str, Any]:
 
 
 # RunPod serverless entry point
+def handle_download_file(params: Dict[str, Any]) -> Dict[str, Any]:
+    """Handle direct file download from container filesystem."""
+    import base64
+    
+    file_path = params.get("file_path")
+    if not file_path:
+        return {"error": "No file_path specified"}
+    
+    logger.info(f"Download request for file: {file_path}")
+    
+    try:
+        # Check if file exists
+        if not os.path.exists(file_path):
+            return {"error": f"File not found: {file_path}"}
+        
+        # Get file info
+        file_size = os.path.getsize(file_path)
+        logger.info(f"File found, size: {file_size} bytes")
+        
+        # Read the file
+        with open(file_path, 'rb') as f:
+            file_data = f.read()
+        
+        # Encode as base64 for transport
+        file_data_b64 = base64.b64encode(file_data).decode('utf-8')
+        
+        logger.info(f"File encoded successfully, base64 length: {len(file_data_b64)}")
+        
+        return {
+            "task": "download_file",
+            "success": True,
+            "file_data": file_data_b64,
+            "file_size": file_size,
+            "file_path": file_path,
+            "filename": os.path.basename(file_path)
+        }
+        
+    except Exception as e:
+        logger.error(f"Failed to read file {file_path}: {str(e)}")
+        return {"error": f"Failed to read file: {str(e)}"}
+
+
 if __name__ == "__main__":
     try:
         import runpod
