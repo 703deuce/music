@@ -104,6 +104,9 @@ def handler(event: Dict[str, Any]) -> Dict[str, Any]:
             elif task == 'download_file':
                 return handle_download_file(params)
                 
+            elif task == 'ace_step_and_download':
+                return handle_ace_step_and_download(params, tmpdir)
+                
             else:
                 raise ValueError(f"Unknown task: {task}")
                 
@@ -406,6 +409,60 @@ def handle_download_file(params: Dict[str, Any]) -> Dict[str, Any]:
     except Exception as e:
         logger.error(f"Failed to read file {file_path}: {str(e)}")
         return {"error": f"Failed to read file: {str(e)}"}
+
+
+def handle_ace_step_and_download(params: Dict[str, Any], tmpdir: str) -> Dict[str, Any]:
+    """Handle ACE-Step generation and immediate download in one operation."""
+    import base64
+    
+    prompt = params.get('prompt')
+    if not prompt:
+        raise ValueError("Missing required 'prompt' parameter for ACE-Step")
+        
+    duration = params.get('duration', 60)
+    output_path = os.path.join(tmpdir, 'generated_music.wav')
+    
+    logger.info(f"Combined ACE-Step generation and download: prompt='{prompt}', duration={duration}s")
+    
+    try:
+        # Generate music
+        metadata = generate_music(prompt, duration, output_path)
+        
+        if not os.path.exists(output_path):
+            return {"error": f"Generated file not found at {output_path}"}
+        
+        # Get file info
+        file_size = os.path.getsize(output_path)
+        logger.info(f"Generated file size: {file_size} bytes")
+        
+        # Read and encode the file
+        with open(output_path, 'rb') as f:
+            file_data = f.read()
+        
+        file_data_b64 = base64.b64encode(file_data).decode('utf-8')
+        
+        logger.info(f"File encoded successfully for download, base64 length: {len(file_data_b64)}")
+        
+        # Also upload to storage as before
+        audio_url = upload_audio(output_path)
+        
+        return {
+            "task": "ace_step_and_download",
+            "success": True,
+            "audio_url": audio_url,
+            "file_data": file_data_b64,
+            "file_size": file_size,
+            "filename": "generated_music.wav",
+            "metadata": metadata,
+            "params": {
+                "prompt": prompt,
+                "duration": duration
+            }
+        }
+        
+    except Exception as e:
+        logger.error(f"Combined ACE-Step and download failed: {str(e)}")
+        return {"error": f"Generation and download failed: {str(e)}"}
 
 
 if __name__ == "__main__":
